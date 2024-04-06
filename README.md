@@ -12,7 +12,7 @@ Our products interact with dozens of blockchains, including signing and submitti
 
 This is possible to accomplish with a remote signing service. The remote signing service for the sake of this exercise needs to support three basic operations: 
 
-1.  Create a private/public key pair and address on the Cosmos Hub
+1. Create a private/public key pair and address on the Cosmos Hub
 2. Query a public key
 3. Sign transaction bytes
 
