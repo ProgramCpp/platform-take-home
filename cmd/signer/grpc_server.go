@@ -5,6 +5,10 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/hashicorp/vault/api"
+	vaultAuth "github.com/skip-mev/platform-take-home/vault"
+
+	vault "github.com/mittwald/vaultgo"
 	apiserver "github.com/skip-mev/platform-take-home/api/server"
 	"github.com/skip-mev/platform-take-home/logging"
 	"github.com/skip-mev/platform-take-home/types"
@@ -18,7 +22,18 @@ func startGRPCServer(ctx context.Context, host string, port int) error {
 
 	server := grpc.NewServer(grpc.UnaryInterceptor(loggingInterceptor))
 
-	types.RegisterAPIServer(server, apiserver.NewDefaultAPIServer(logging.FromContext(ctx)))
+	token, err := vaultAuth.GetTokenWithAppRole()
+	if err != nil {
+		return fmt.Errorf("[grpc server] error getting vault token: %v", err)
+	}
+
+	// TODO: do not use default address. Use app config
+	vaultClient, err := vault.NewClient(api.DefaultAddress, nil, vault.WithAuthToken(token))
+	if err != nil {
+		return fmt.Errorf("[grpc server] error creating vault client: %v", err)
+	}
+	
+	types.RegisterAPIServer(server, apiserver.NewDefaultAPIServer(logging.FromContext(ctx), vaultClient))
 
 	reflection.Register(server)
 

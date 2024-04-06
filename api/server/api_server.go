@@ -5,19 +5,23 @@ import (
 	"github.com/skip-mev/platform-take-home/logging"
 	"github.com/skip-mev/platform-take-home/types"
 	"go.uber.org/zap"
+
+	"github.com/mittwald/vaultgo"
 )
 
 type APIServerImpl struct {
 	types.UnimplementedAPIServer
 
-	logger *zap.Logger
+	logger      *zap.Logger
+	vaultClient *vault.Client
 }
 
 var _ types.APIServer = &APIServerImpl{}
 
-func NewDefaultAPIServer(logger *zap.Logger) *APIServerImpl {
+func NewDefaultAPIServer(logger *zap.Logger, vaultClient *vault.Client) *APIServerImpl {
 	return &APIServerImpl{
 		logger: logger,
+		vaultClient: vaultClient,
 	}
 }
 
