@@ -6,6 +6,7 @@ import (
 	"github.com/skip-mev/platform-take-home/types"
 	"go.uber.org/zap"
 
+	// TODO: unaudited vault client. audit client or BYOC - build your own client!
 	"github.com/mittwald/vaultgo"
 )
 
@@ -18,6 +19,8 @@ type APIServerImpl struct {
 
 var _ types.APIServer = &APIServerImpl{}
 
+const VAULT_MOUNT_POINT = "private_keys"
+
 func NewDefaultAPIServer(logger *zap.Logger, vaultClient *vault.Client) *APIServerImpl {
 	return &APIServerImpl{
 		logger: logger,
@@ -28,6 +31,10 @@ func NewDefaultAPIServer(logger *zap.Logger, vaultClient *vault.Client) *APIServ
 func (s *APIServerImpl) CreateWallet(ctx context.Context, request *types.CreateWalletRequest) (*types.CreateWalletResponse, error) {
 	// TODO: implement this
 	logging.FromContext(ctx).Info("CreateWallet", zap.String("name", request.Name))
+
+	s.vaultClient.TransitWithMountPoint(VAULT_MOUNT_POINT).Create(request.Name, &vault.TransitCreateOptions{
+		Type: "ecdsa-p256",
+	})
 
 	return &types.CreateWalletResponse{
 		Wallet: &types.Wallet{},
