@@ -10,6 +10,8 @@ import (
 
 	"github.com/hashicorp/vault-client-go"
 	"github.com/hashicorp/vault-client-go/schema"
+
+	vaultClient "github.com/skip-mev/platform-take-home/vault"
 )
 
 type APIServerImpl struct {
@@ -23,7 +25,7 @@ var _ types.APIServer = &APIServerImpl{}
 
 func NewDefaultAPIServer(logger *zap.Logger, vaultClient *vault.Client) *APIServerImpl {
 	return &APIServerImpl{
-		logger: logger,
+		logger:      logger,
 		vaultClient: vaultClient,
 	}
 }
@@ -32,9 +34,10 @@ func (s *APIServerImpl) CreateWallet(ctx context.Context, request *types.CreateW
 	// TODO: implement this
 	logging.FromContext(ctx).Info("CreateWallet", zap.String("name", request.Name))
 
-	_, err := s.vaultClient.Secrets.TransitCreateKey(ctx, request.Name, schema.TransitCreateKeyRequest{
-		Type: "ecdsa-p256",
-	})
+	_, err := s.vaultClient.Secrets.TransitCreateKey(ctx, request.Name,
+		schema.TransitCreateKeyRequest{
+			Type: "ecdsa-p256",
+		}, vault.WithMountPath(vaultClient.VAULT_MOUNT_POINT))
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating key")
 	}

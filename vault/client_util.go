@@ -2,6 +2,7 @@ package vault
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"time"
 
@@ -37,6 +38,8 @@ func NewClient(ctx context.Context, addr string) (*vault.Client, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "error with app role login")
 	}
+	fmt.Println(resp)
+	fmt.Println(resp.Auth)
 
 	if err := client.SetToken(resp.Auth.ClientToken); err != nil {
 		return nil, errors.Wrap(err, "error initializing client token")
