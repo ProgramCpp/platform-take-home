@@ -21,8 +21,6 @@ type APIServerImpl struct {
 
 var _ types.APIServer = &APIServerImpl{}
 
-const VAULT_MOUNT_POINT = "private_keys"
-
 func NewDefaultAPIServer(logger *zap.Logger, vaultClient *vault.Client) *APIServerImpl {
 	return &APIServerImpl{
 		logger: logger,

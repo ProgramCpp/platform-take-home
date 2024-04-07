@@ -41,7 +41,7 @@ data "vault_approle_auth_backend_role_id" "remote_signer" {
 resource "vault_approle_auth_backend_role_secret_id" "remote_signer" {
   backend   = vault_auth_backend.private_keys.path
   role_name = vault_approle_auth_backend_role.remote_signer.role_name
-  wrapping_ttl = 60
+  wrapping_ttl = 600
 }
 
 output "role_id" {

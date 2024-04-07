@@ -10,6 +10,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+const VAULT_MOUNT_POINT = "private_keys"
+
 func NewClient(ctx context.Context, addr string) (*vault.Client, error) {
 	client, err := vault.New(
 		vault.WithAddress(addr),
@@ -19,17 +21,18 @@ func NewClient(ctx context.Context, addr string) (*vault.Client, error) {
 		return nil, errors.Wrap(err, "error creating vault client")
 	}
 	
-	secret, err := vault.Unwrap[schema.KvV2ReadResponse](ctx, client, os.Getenv("WRAPPED_SECRET_ID"))
+	secret, err := vault.Unwrap[map[string]interface{}](ctx, client, os.Getenv("WRAPPED_SECRET_ID"))
 	if err != nil {
-		return nil, errors.Wrap(err, "error unerapping vault token")
+		return nil, errors.Wrap(err, "error unwrapping vault token")
 	}
 
 	resp, err := client.Auth.AppRoleLogin(
 		ctx,
 		schema.AppRoleLoginRequest{
 			RoleId:   os.Getenv("ROLE_ID"),
-			SecretId: secret.Auth.ClientToken,
+			SecretId: secret.Data["secret_id"].(string),
 		},
+		vault.WithMountPath(VAULT_MOUNT_POINT),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "error with app role login")
