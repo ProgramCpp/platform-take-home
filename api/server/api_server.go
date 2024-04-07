@@ -2,12 +2,14 @@ package server
 
 import (
 	"context"
+
+	"github.com/pkg/errors"
 	"github.com/skip-mev/platform-take-home/logging"
 	"github.com/skip-mev/platform-take-home/types"
 	"go.uber.org/zap"
 
-	// TODO: unaudited vault client. audit client or BYOC - build your own client!
-	"github.com/mittwald/vaultgo"
+	"github.com/hashicorp/vault-client-go"
+	"github.com/hashicorp/vault-client-go/schema"
 )
 
 type APIServerImpl struct {
@@ -32,9 +34,14 @@ func (s *APIServerImpl) CreateWallet(ctx context.Context, request *types.CreateW
 	// TODO: implement this
 	logging.FromContext(ctx).Info("CreateWallet", zap.String("name", request.Name))
 
-	s.vaultClient.TransitWithMountPoint(VAULT_MOUNT_POINT).Create(request.Name, &vault.TransitCreateOptions{
+	_, err := s.vaultClient.Secrets.TransitCreateKey(ctx, request.Name, schema.TransitCreateKeyRequest{
 		Type: "ecdsa-p256",
 	})
+	if err != nil {
+		return nil, errors.Wrap(err, "error creating key")
+	}
+
+	//response.Data
 
 	return &types.CreateWalletResponse{
 		Wallet: &types.Wallet{},
