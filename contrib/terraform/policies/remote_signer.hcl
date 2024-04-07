@@ -1,4 +1,4 @@
-path "/private_keys/*"
+path "private_keys/*"
 {
   capabilities = ["create", "read", "update"]
 }

@@ -23,32 +23,33 @@ resource "vault_policy" "remote_signer" {
   policy = file("policies/remote_signer.hcl")
 }
 
-resource "vault_auth_backend" "private_keys" {
+resource "vault_auth_backend" "remote_signer" {
   type = "approle"
   path = "private_keys"
 }
 
 resource "vault_approle_auth_backend_role" "remote_signer" {
-  backend        = vault_auth_backend.private_keys.path
+  backend        = vault_auth_backend.remote_signer.path
   role_name      = "remote_signer"
+  token_policies = ["remote_signer"]
 }
 
 data "vault_approle_auth_backend_role_id" "remote_signer" {
-  backend   = vault_auth_backend.private_keys.path
+  backend   = vault_auth_backend.remote_signer.path
   role_name = vault_approle_auth_backend_role.remote_signer.role_name
 }
 
 resource "vault_approle_auth_backend_role_secret_id" "remote_signer" {
-  backend   = vault_auth_backend.private_keys.path
+  backend   = vault_auth_backend.remote_signer.path
   role_name = vault_approle_auth_backend_role.remote_signer.role_name
-  wrapping_ttl = 600
+  wrapping_ttl = 86400
 }
 
 output "role_id" {
   value = data.vault_approle_auth_backend_role_id.remote_signer.role_id
 }
 
-// DO NOT DO THIS! this is only for local tests
+// DO NOT DO THIS! this is only for local tests. Pass the secret to app directly when provisioning
 output "wrapped_secret_id" {
   value = nonsensitive(vault_approle_auth_backend_role_secret_id.remote_signer.wrapping_token)
 }
