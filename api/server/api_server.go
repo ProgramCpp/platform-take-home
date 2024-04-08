@@ -2,6 +2,12 @@ package server
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/sha256"
+	"crypto/x509"
+	"encoding/pem"
+	"fmt"
 
 	"github.com/pkg/errors"
 	"github.com/skip-mev/platform-take-home/logging"
@@ -10,6 +16,8 @@ import (
 
 	"github.com/hashicorp/vault-client-go"
 	"github.com/hashicorp/vault-client-go/schema"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	vaultClient "github.com/skip-mev/platform-take-home/vault"
 )
@@ -31,10 +39,9 @@ func NewDefaultAPIServer(logger *zap.Logger, vaultClient *vault.Client) *APIServ
 }
 
 func (s *APIServerImpl) CreateWallet(ctx context.Context, request *types.CreateWalletRequest) (*types.CreateWalletResponse, error) {
-	// TODO: implement this
 	logging.FromContext(ctx).Info("CreateWallet", zap.String("name", request.Name))
 
-	_, err := s.vaultClient.Secrets.TransitCreateKey(ctx, request.Name,
+	resp, err := s.vaultClient.Secrets.TransitCreateKey(ctx, request.Name,
 		schema.TransitCreateKeyRequest{
 			Type: "ecdsa-p256",
 		}, vault.WithMountPath(vaultClient.VAULT_MOUNT_POINT))
@@ -42,11 +49,40 @@ func (s *APIServerImpl) CreateWallet(ctx context.Context, request *types.CreateW
 		return nil, errors.Wrap(err, "error creating key")
 	}
 
-	//response.Data
+	publicKeyPEM := resp.Data["keys"].(map[string]interface{})["1"].(map[string]interface{})["public_key"].(string)
 
-	return &types.CreateWalletResponse{
-		Wallet: &types.Wallet{},
-	}, nil
+	block, _ := pem.Decode([]byte(publicKeyPEM))
+	if err != nil {
+		return nil, errors.Wrap(err, "error decoding public key PEM")
+	}
+
+	publicKey, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return nil, errors.Wrap(err, "error parsing public key")
+	}
+
+	ecdsaPublicKey := publicKey.(*ecdsa.PublicKey)
+	publicKeyCompressed := elliptic.MarshalCompressed(elliptic.P256(), ecdsaPublicKey.X, ecdsaPublicKey.Y)
+
+	
+	publicKeySha := sha256.Sum256(publicKeyCompressed)
+
+	
+	address, err := sdk.Bech32ifyAddressBytes("cosmos", publicKeySha[:])
+	if err != nil {
+		return nil, errors.Wrap(err, "error creating bech32 address")
+	}
+
+	res := types.CreateWalletResponse{
+		Wallet: &types.Wallet{
+			Name: request.Name,
+			Pubkey: publicKeyCompressed,
+			AddressBytes: publicKeySha[:], 
+			Address: address,
+		},
+	}
+	fmt.Printf("%+v", res)
+	return &res, nil
 }
 
 func (s *APIServerImpl) GetWallet(ctx context.Context, request *types.GetWalletRequest) (*types.GetWalletResponse, error) {
