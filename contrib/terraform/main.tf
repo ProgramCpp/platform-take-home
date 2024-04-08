@@ -42,7 +42,7 @@ data "vault_approle_auth_backend_role_id" "remote_signer" {
 resource "vault_approle_auth_backend_role_secret_id" "remote_signer" {
   backend   = vault_auth_backend.remote_signer.path
   role_name = vault_approle_auth_backend_role.remote_signer.role_name
-  wrapping_ttl = 86400
+  wrapping_ttl = 86400 // TODO: use small TTL for prod. this is for local testing only
 }
 
 output "role_id" {

@@ -2,7 +2,11 @@ package server
 
 import (
 	"context"
+	"encoding/asn1"
+	"encoding/base64"
+	"math/big"
 	"net/http"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/skip-mev/platform-take-home/logging"
@@ -47,7 +51,7 @@ func (s *APIServerImpl) CreateWallet(ctx context.Context, request *types.CreateW
 		return nil, errors.Wrap(err, "error creating key")
 	}
 
-	wallet, err := GetWallet(resp.Data)
+	wallet, err := getWallet(resp.Data)
 	if err != nil {
 		return nil, errors.Wrap(err, "error parsing vault response")
 	}
@@ -62,13 +66,13 @@ func (s *APIServerImpl) GetWallet(ctx context.Context, request *types.GetWalletR
 		vault.WithMountPath(vaultClient.VAULT_MOUNT_POINT))
 	if err != nil {
 		var resErr *vault.ResponseError
-		if errors.As(err, &resErr) && resErr.StatusCode == http.StatusNotFound{
+		if errors.As(err, &resErr) && resErr.StatusCode == http.StatusNotFound {
 			return nil, status.Error(codes.NotFound, "wallet not found") // TODO: wrap error message for logging
 		}
 		return nil, errors.Wrap(err, "error getting key from vault")
 	}
 
-	wallet, err := GetWallet(resp.Data)
+	wallet, err := getWallet(resp.Data)
 	if err != nil {
 		return nil, errors.Wrap(err, "error parsing vault response")
 	}
@@ -89,7 +93,7 @@ func (s *APIServerImpl) GetWallets(ctx context.Context, request *types.EmptyRequ
 		if err != nil {
 			return nil, errors.Wrap(err, "error getting key from vault")
 		}
-		wallet, err := GetWallet(resp.Data)
+		wallet, err := getWallet(resp.Data)
 		if err != nil {
 			return nil, errors.Wrap(err, "error parsing vault response")
 		}
@@ -101,8 +105,33 @@ func (s *APIServerImpl) GetWallets(ctx context.Context, request *types.EmptyRequ
 }
 
 func (s *APIServerImpl) Sign(ctx context.Context, request *types.WalletSignatureRequest) (*types.WalletSignatureResponse, error) {
-	// TODO: implement this
+	resp, err := s.vaultClient.Secrets.TransitSign(ctx, request.GetWalletName(),
+		schema.TransitSignRequest{
+			Input:         base64.StdEncoding.EncodeToString(request.GetTxBytes()),
+			HashAlgorithm: "sha2-256", // default value. not needed
+		}, vault.WithMountPath(vaultClient.VAULT_MOUNT_POINT))
+	if err != nil {
+		return nil, errors.Wrap(err, "error creating key")
+	}
+
+	// "vault:v1:<base64-encoded-signature>
+	vaultSig := resp.Data["signature"].(string)
+	asn1Sig, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(vaultSig, "vault:v1:"))
+	if err != nil {
+		return nil, errors.Wrap(err, "error base64 decoding signature")
+	}
+
+	var ecdsaSig struct {
+		R, S *big.Int
+	}
+	_, err = asn1.Unmarshal((asn1Sig), &ecdsaSig)
+	if err != nil {
+		return nil, errors.Wrap(err, "error asn1 decoding signature")
+	}
+
+	ecdsaSig.S = NormalizeS(ecdsaSig.S)
+
 	return &types.WalletSignatureResponse{
-		Signature: nil,
+		Signature: signatureRaw(ecdsaSig.R, ecdsaSig.S),
 	}, nil
 }

@@ -4,15 +4,16 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/skip-mev/platform-take-home/types"
 	"io"
 	"net/http"
 	"testing"
 
+	"github.com/skip-mev/platform-take-home/types"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-// TODO: make hermetic tests. 
+// TODO: make hermetic tests.
 // 1. clean up keys
 // 2. spin up the test server
 func createWallet(name string) (*types.Wallet, error) {
