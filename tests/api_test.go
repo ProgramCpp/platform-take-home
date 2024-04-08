@@ -12,6 +12,9 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
+// TODO: make hermetic tests. 
+// 1. clean up keys
+// 2. spin up the test server
 func createWallet(name string) (*types.Wallet, error) {
 	req := map[string]string{
 		"name": name,
@@ -195,7 +198,7 @@ func TestGetWallets(t *testing.T) {
 		t.Fatalf("expected address %s, got empty", wallet.Address)
 	}
 
-	if ourWallet.Address == wallet.Address {
+	if ourWallet.Address != wallet.Address {
 		t.Fatalf("expected address %s, got %s", wallet.Address, ourWallet.Address)
 	}
 
@@ -203,7 +206,7 @@ func TestGetWallets(t *testing.T) {
 		t.Fatalf("expected pubkey %x, got %x", wallet.Pubkey, ourWallet.Pubkey)
 	}
 
-	t.Skip("TODO")
+	// t.Skip("TODO")
 }
 
 func TestCreateWalletMissingName(t *testing.T) {

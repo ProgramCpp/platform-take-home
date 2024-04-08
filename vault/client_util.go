@@ -13,6 +13,7 @@ import (
 const VAULT_MOUNT_POINT = "private_keys"
 
 func NewClient(ctx context.Context, addr string) (*vault.Client, error) {
+	// TODO: configure TLS
 	client, err := vault.New(
 		vault.WithAddress(addr),
 		vault.WithRequestTimeout(30*time.Second),
