@@ -2,11 +2,14 @@ package server
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/pkg/errors"
 	"github.com/skip-mev/platform-take-home/logging"
 	"github.com/skip-mev/platform-take-home/types"
 	"go.uber.org/zap"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/vault-client-go"
 	"github.com/hashicorp/vault-client-go/schema"
@@ -30,6 +33,7 @@ func NewDefaultAPIServer(logger *zap.Logger, vaultClient *vault.Client) *APIServ
 	}
 }
 
+// TODO: log errors
 func (s *APIServerImpl) CreateWallet(ctx context.Context, request *types.CreateWalletRequest) (*types.CreateWalletResponse, error) {
 	logging.FromContext(ctx).Info("CreateWallet", zap.String("name", request.Name))
 
@@ -57,8 +61,13 @@ func (s *APIServerImpl) GetWallet(ctx context.Context, request *types.GetWalletR
 	resp, err := s.vaultClient.Secrets.TransitReadKey(ctx, request.GetName(),
 		vault.WithMountPath(vaultClient.VAULT_MOUNT_POINT))
 	if err != nil {
+		var resErr *vault.ResponseError
+		if errors.As(err, &resErr) && resErr.StatusCode == http.StatusNotFound{
+			return nil, status.Error(codes.NotFound, "wallet not found") // TODO: wrap error message for logging
+		}
 		return nil, errors.Wrap(err, "error getting key from vault")
 	}
+
 	wallet, err := GetWallet(resp.Data)
 	if err != nil {
 		return nil, errors.Wrap(err, "error parsing vault response")
