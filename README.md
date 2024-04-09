@@ -52,3 +52,39 @@ To ensure your service passes basic functionality tests, you can run `make test`
 
 > 🆘 Please reach out to us on Telegram (@bpiv400, @magelinskaas) or email (barry@skip.money, zygis@skip.money) if you have any questions.
 
+
+## Submission
+
+### pre-requisites
+1. vault
+2. terraform
+
+### Steps
+1. run vault 
+```
+make start-vault
+```
+2. setup vault
+```
+cd contrib/terraform/
+terraform init
+terraform apply
+```
+3. set environment variables for the app. use terraform output values from the previous step
+```
+export VAULT_ADDR=http://127.0.0.1:8200
+export ROLE_ID=<role-id>
+export WRAPPED_SECRET_ID==<wrapped-secret-id>
+```
+4. build app
+```
+make build
+```
+4. run app
+```
+make start
+```
+4. run tests
+```
+make test
+```
